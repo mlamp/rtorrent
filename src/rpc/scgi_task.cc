@@ -158,7 +158,7 @@ SCgiTask::event_write() {
   int bytes = ::send(m_fileDesc, m_buffer.data() + m_position, m_buffer.size() - m_position, 0);
 
   if (bytes == -1) {
-    if (!(errno == EAGAIN || errno == EINTR || errno == EPIPE))
+    if (!(errno == EAGAIN || errno == EINTR))
       close();
 
     return;
