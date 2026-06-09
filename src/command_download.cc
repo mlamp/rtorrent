@@ -647,7 +647,16 @@ initialize_command_download() {
   CMD2_DL("d.hash",                           [](auto* download, auto) { return torrent::utils::transform_to_hex_str(download->info()->hash()); });
   CMD2_DL("d.local_id",                       [](auto* download, auto) { return torrent::utils::transform_to_hex_str(download->info()->local_id()); });
   CMD2_DL("d.local_id_html",                  [](auto* download, auto) { return torrent::utils::copy_escape_html_str(download->info()->local_id()); });
-  CMD2_DL("d.bitfield",                       [](auto* download, auto) { return torrent::utils::transform_to_hex_str(*download->download()->file_list()->bitfield()); });
+  CMD2_DL("d.bitfield",                       [](auto* download, auto) -> std::string {
+      const torrent::Bitfield* bitField = download->download()->file_list()->bitfield();
+      // A closed/cache-evicted torrent has an unallocated bitfield (m_data==nullptr while
+      // m_size>0). begin()==nullptr but end()==nullptr+size_bytes() is non-null, so
+      // transform_to_hex_str would iterate from a null pointer -> SEGV at 0x0. Guard it,
+      // restoring the behaviour of retrieve_d_bitfield() from v0.16.10.
+      if (bitField->empty())
+        return std::string();
+      return torrent::utils::transform_to_hex_str(*bitField);
+    });
   CMD2_DL("d.base_path",                      [](auto* download, auto) { return retrieve_d_base_path(download).str(); });
   CMD2_DL("d.base_path.hex",                  [](auto* download, auto) { return retrieve_d_base_path(download).object_hex(); });
   CMD2_DL("d.base_path.base64",               [](auto* download, auto) { return retrieve_d_base_path(download).object_base64(); });
